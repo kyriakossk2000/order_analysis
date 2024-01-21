@@ -27,6 +27,7 @@ parser.add_argument('--past_days', default=7, type=int, help='# of past days to 
 
 args = parser.parse_args()
 
+# Loading dataset and preporcessing by sorting & filling missing values
 def load_and_preprocess_data(data_path):
     try:
         data = pd.read_csv(data_path)
@@ -40,9 +41,11 @@ def load_and_preprocess_data(data_path):
         print(f"Error loading and preprocessing data: {e}")
         raise
 
+# Feature engineering method. Picking features, create target variable. 
+# Based on EDA, the best features seem to be ITEM_COUNT, ESTIMATED_DELIVERY_MINUTES, ACTUAL_DELIVERY_MINUTES)
 def feature_engineering(data):
     try:
-        daily_data = data.resample('D').agg({  # based on EDA --> best features seem to be ITEM_COUNT, ESTIMATED_DELIVERY_MINUTES, ACTUAL_DELIVERY_MINUTES)
+        daily_data = data.resample('D').agg({ 
         'ITEM_COUNT': 'sum', # total number of items ordered that day 
         'ESTIMATED_DELIVERY_MINUTES': 'sum',  
         'ACTUAL_DELIVERY_MINUTES': 'sum',
@@ -70,7 +73,7 @@ def feature_engineering(data):
         print(f"Error in feature engineering: {e}")
         raise
 
-# time-based split of the data
+# Time-based split of the data according to user input. If 7 days as prediction goal, split data by days and use the last 7 days for test.
 def time_based_split(data, days_for_test, features, target):
     try:
         split_date = data.index.max() - pd.Timedelta(days=days_for_test)        
@@ -83,28 +86,30 @@ def time_based_split(data, days_for_test, features, target):
         print(f"Error in time-based data split: {e}")
         raise
 
+# Model training function. Includes options for 3 models (Random Forest Regression, Linear Regression, and Multilayer Perceptron MLP)
 def train_models(X_train, y_train):
     models = {}
     scalers = {} 
 
     if args.model_type in ['all', 'linear']:
-        models['linear'] = LinearRegression().fit(X_train, y_train) # fit linear reg
+        models['linear'] = LinearRegression().fit(X_train, y_train) # fit linear regression -> does not require scaling 
     if args.model_type in ['all', 'forest']:
-        models['forest'] = RandomForestRegressor(n_estimators=args.n_estimators).fit(X_train, y_train) # fit random forest
+        models['forest'] = RandomForestRegressor(n_estimators=args.n_estimators).fit(X_train, y_train) # fit random forest -> does not require scaling 
     if args.model_type in ['all', 'mlp']:
         scaler_X = MinMaxScaler() # scaling features and target
-        scaler_y = MinMaxScaler()
+        scaler_y = MinMaxScaler() 
         X_train_scaled = scaler_X.fit_transform(X_train)
         y_train_scaled = scaler_y.fit_transform(y_train.values.reshape(-1, 1)).ravel()
 
-        mlp_hidden_layers = eval(args.units_layers)  
+        mlp_hidden_layers = eval(args.units_layers)  # read into tuple
         models['mlp'] = MLPRegressor(hidden_layer_sizes=mlp_hidden_layers, learning_rate='adaptive', max_iter=args.epochs, verbose=False, solver=args.solver).fit(X_train_scaled, y_train_scaled)
 
-        # Storing scalers for MLP
+        # storing scalers for MLP
         scalers['mlp'] = {'X': scaler_X, 'y': scaler_y}
 
     return models, scalers
 
+# Method used to make future predictions 
 def predict_future(models, X_test, scalers):
     predictions = {}
     future_dates = pd.date_range(start=X_test.index.max() + pd.Timedelta(days=1), periods=args.future_days, freq='D')
@@ -127,6 +132,7 @@ def predict_future(models, X_test, scalers):
         print('\n')
     return predictions
 
+# Methods used to plot future predictions for better visualizing the results and the difference in models' performance
 def plot_predictions(y_train, y_test, predictions, future_dates, past_days=14):
     recent_train_dates = y_train.index[-past_days:]  # selecting recent past days from y_train
     recent_train_values = y_train.iloc[-past_days:]
@@ -185,6 +191,7 @@ def plot_predictions(y_train, y_test, predictions, future_dates, past_days=14):
     )
     fig.show()
 
+# Method used to evaluate model(s). Uses MSE and MAE 
 def evaluate_models(models, X_test, y_test, scalers):
     model_performance = {}
     for model_name, model in models.items():
@@ -202,6 +209,7 @@ def evaluate_models(models, X_test, y_test, scalers):
         print(f"Mean Squared Error: {mse:.2f}\n")
     return model_performance
 
+# Method to print the best model based on MSE
 def compare_models(model_performance):
     # --> best model based on lowest MSE
     best_model = min(model_performance, key=lambda k: model_performance[k]['MSE'])
@@ -209,15 +217,15 @@ def compare_models(model_performance):
     print(f"Performance: MAE = {model_performance[best_model]['MAE']:.2f}, MSE = {model_performance[best_model]['MSE']:.2f}")
     print('\n')
 
+# Main method 
 if __name__ == '__main__':
     data = load_and_preprocess_data(args.data_path) # load and preprocess data
 
-    daily_data, features, target = feature_engineering(data)
+    daily_data, features, target = feature_engineering(data) # features and target
 
     X_train, X_test, y_train, y_test = time_based_split(daily_data, args.future_days, features, target) # time-based split
         
     models, scalers = train_models(X_train, y_train) # train 
-    
 
     print("\n")
     model_performance = evaluate_models(models, X_test, y_test, scalers) # evaluate models
