@@ -4,6 +4,7 @@
 This project focuses on forecasting the number of orders Wolt might receive in the coming days. It aims to utilize historical order data to predict future order volumes, helping in resource allocation and planning.
 
 ## Folder Structure
+```bash
 Predicting-Order-Volume/
 │
 ├── Data/
@@ -14,7 +15,7 @@ Predicting-Order-Volume/
 │
 ├── modelling.py
 └── requirements.txt
-
+```
 ### Prerequisites
 Install the required packages using the following command:
 ```bash
