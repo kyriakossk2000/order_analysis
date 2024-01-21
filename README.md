@@ -9,6 +9,7 @@ Predicting-Order-Volume/
 ├── Data/
 │ ├── data_analysis.ipynb
 │ ├── orders_autumn_2020.csv
+| ├── user_heatmap.html
 │ └── user_heatmap.png
 │
 ├── modelling.py
