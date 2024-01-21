@@ -13,7 +13,7 @@ Predicting-Order-Volume/
 │ ├── user_heatmap.html
 │ └── user_heatmap.png
 │
-├── modelling.py
+├── modeling.py
 └── requirements.txt
 ```
 ### Prerequisites
