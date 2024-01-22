@@ -31,7 +31,7 @@ python modeling.py --data_path Data/orders_autumn_2020.csv --model_type forest
 ```
 To specify a model type and configure other parameters:
 ```bash
-python modeling.py --data_path Data/orders_autumn_2020.csv --model_type all --n_estimators 150 --epochs 40 --units_layers 500,250,500 --solver adam --future_days 10 --past_days 14
+python modeling.py --data_path Data/orders_autumn_2020.csv --model_type all --n_estimators 150 --epochs 30 --units_layers 500,250,500 --solver adam --future_days 7 --past_days 14
 ```
 
 ## Data Analysis

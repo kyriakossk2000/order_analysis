@@ -5,7 +5,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import plotly.graph_objects as go
 
 def str2bool(s):
@@ -191,7 +191,7 @@ def plot_predictions(y_train, y_test, predictions, future_dates, past_days=14):
     )
     fig.show()
 
-# Method used to evaluate model(s). Uses MSE and MAE 
+# Method used to evaluate model(s). Uses MSE and MAE, R2
 def evaluate_models(models, X_test, y_test, scalers):
     model_performance = {}
     for model_name, model in models.items():
@@ -203,10 +203,12 @@ def evaluate_models(models, X_test, y_test, scalers):
             y_pred = model.predict(X_test)
         mae = mean_absolute_error(y_test, y_pred)
         mse = mean_squared_error(y_test, y_pred)
-        model_performance[model_name] = {'MAE': mae, 'MSE': mse}
+        r2 = r2_score(y_test, y_pred)
+        model_performance[model_name] = {'MAE': mae, 'MSE': mse, 'R2' : r2}
         print(f"{model_name.capitalize()} Model Evaluation:")
         print(f"Mean Absolute Error: {mae:.2f}")
-        print(f"Mean Squared Error: {mse:.2f}\n")
+        print(f"Mean Squared Error: {mse:.2f}")
+        print(f"Coefficient of determination: {r2:.2f}\n")
     return model_performance
 
 # Method to print the best model based on MSE
@@ -214,7 +216,7 @@ def compare_models(model_performance):
     # --> best model based on lowest MSE
     best_model = min(model_performance, key=lambda k: model_performance[k]['MSE'])
     print(f"Best Model: {best_model.capitalize()}")
-    print(f"Performance: MAE = {model_performance[best_model]['MAE']:.2f}, MSE = {model_performance[best_model]['MSE']:.2f}")
+    print(f"Performance: MAE = {model_performance[best_model]['MAE']:.2f}, MSE = {model_performance[best_model]['MSE']:.2f}, R2 = {model_performance[best_model]['R2']:.2f}")
     print('\n')
 
 # Main method 
