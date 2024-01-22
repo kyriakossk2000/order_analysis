@@ -27,11 +27,11 @@ The `modeling.py` script is the main file that performs the modelling, training,
 #### Example Commands
 Run the following command in the command line to execute the modelling script with the default parameters:
 ```bash
-python modeling.py --data_path Data/orders_autumn_2020.csv --model_type forest
+python modeling.py --data_path Data/orders_autumn_2020.csv --model_type sarima
 ```
 To specify a model type and configure other parameters:
 ```bash
-python modeling.py --data_path Data/orders_autumn_2020.csv --model_type all --n_estimators 150 --epochs 30 --units_layers 500,250,500 --solver adam --future_days 7 --past_days 14
+python modeling.py --data_path Data/orders_autumn_2020.csv --model_type all --future_days 14 --past_days 50
 ```
 
 ## Data Analysis
@@ -41,3 +41,4 @@ The `data_analysis.ipynb` notebook within the `Data` folder includes a comprehen
 The task is to predict the daily order volume for the next `X` days (`future_days` argument) based on historical data. The model also plots the historical order volumes for the last `Y` days (`past_days` argument) alongside the predictions.
 - Adjust the `future_days` argument to set the forecast horizon.
 - Adjust the `past_days` argument to determine the number of historical days to plot.
+- This is a time-series forecasting analysis. 

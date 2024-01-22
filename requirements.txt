@@ -7,3 +7,5 @@ tensorflow==2.7.0
 seaborn==0.11.1
 folium==0.15.1
 ipython==8.6.0
+statsmodels==0.12.2
+pmdarima==2.0.4
