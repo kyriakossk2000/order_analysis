@@ -1,11 +1,11 @@
-# Predicting Order Volume for Wolt
+# Predicting Venue Popularity for Wolt
 
 ## Project Overview
 This project focuses on forecasting the number of orders Wolt might receive in the coming days. It aims to utilize historical order data to predict future order volumes, helping in resource allocation and planning.
 
 ## Folder Structure
 ```bash
-Predicting-Order-Volume/
+Predicting-Venue-Popularity/
 │
 ├── Data/
 │ ├── data_analysis.ipynb
@@ -27,11 +27,11 @@ The `modeling.py` script is the main file that performs the modelling, training,
 #### Example Commands
 Run the following command in the command line to execute the modelling script with the default parameters:
 ```bash
-python modeling.py --data_path Data/orders_autumn_2020.csv --model_type sarima
+python modeling.py --data_path Data/orders_autumn_2020.csv --model_type svm
 ```
 To specify a model type and configure other parameters:
 ```bash
-python modeling.py --data_path Data/orders_autumn_2020.csv --model_type all --future_days 14 --past_days 50
+python modeling.py --data_path Data/orders_autumn_2020.csv --model_type mlp --units_layers 500,250,500,500
 ```
 
 ## Data Analysis
