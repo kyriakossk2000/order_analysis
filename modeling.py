@@ -8,6 +8,7 @@ from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
 import folium
 from folium.plugins import HeatMap
+from sklearn.cluster import KMeans
 from geopy.distance import great_circle
 import random
 import argparse
@@ -15,6 +16,7 @@ from scipy.stats import ttest_rel
 import numpy as np
 
 def str2bool(s):
+    s = s.lower()
     if s not in {'false', 'true'}:
         raise ValueError('Not a valid boolean string')
     return s == 'true'
@@ -27,7 +29,9 @@ parser.add_argument('--n_estimators', default=100, type=int)  # for random fores
 parser.add_argument('--kernel', default='rbf', type=str)  # for svm
 parser.add_argument('--degree', default=3, type=int)  # for svm
 parser.add_argument('--epochs', default=100, type=int)  # for mlp
-parser.add_argument('--user_loc', default=False, type=bool)  # use user location as feature
+parser.add_argument('--user_loc', default=False, type=str2bool)  # use user location as feature
+parser.add_argument('--cluster_venues', default=False, type=str2bool)  # cluster venues feature
+parser.add_argument('--n_clusters', default=10, type=int)  # use user location as feature
 parser.add_argument('--units_layers', default='500, 250, 500, 500', type=str, help='Type units, layers of MLP.')  # for mlp
 parser.add_argument('--learning_rate', default=0.01, type=float)  # for mlp
 parser.add_argument('--solver', default='adam', choices=['adam', 'lbfgs', 'sgd'], help='Type of solver for weight optimization in MLP.')  # for mlp
@@ -37,32 +41,43 @@ args = parser.parse_args()
 def load_data(file_path):
     return pd.read_csv(file_path)
 
+# Calculate average distance of users from each venue using great circle:
+# Geodesic Distance: 
+# It is the length of the shortest path between 2 points on any surface. In our case, the surface is the earth --> latitude-longitude data
+# Reference: https://www.geeksforgeeks.org/python-calculate-distance-between-two-places-using-geopy/
 def calculate_average_distance(group):
-    venue_location = (group.name[0], group.name[1])  # (VENUE_LAT_ROUNDED, VENUE_LONG_ROUNDED)
+    venue_location = (group.name[0], group.name[1])  # (VENUE_LAT, VENUE_LONG)
     distances = group.apply(lambda row: great_circle(venue_location, (row['USER_LAT'], row['USER_LONG'])).kilometers, axis=1)
     return distances.mean()
 
 #  Feature Engineering
 def feature_engineering(data):
-    # adjusting coordinates for location accuracy. Close venues will count as 1. Maybe GPS error. 
-    data['VENUE_LAT_ROUNDED'] = data['VENUE_LAT'].round(3)
-    data['VENUE_LONG_ROUNDED'] = data['VENUE_LONG'].round(3)
 
-    # aggregate orders by venue long and lat
-    venue_data = data.groupby(['VENUE_LAT_ROUNDED', 'VENUE_LONG_ROUNDED']).agg(
+    # aggregate orders by venue lat and long
+    venue_data = data.groupby(['VENUE_LAT', 'VENUE_LONG']).agg(
         total_orders=pd.NamedAgg(column='TIMESTAMP', aggfunc='count')
     ).reset_index()
+    kmeans = None
+    if args.cluster_venues:
+        # clustering venues based on geographic coordinates
+        kmeans = KMeans(n_clusters=args.n_clusters, random_state=42)
+        venue_data['cluster_label'] = kmeans.fit_predict(venue_data[['VENUE_LAT', 'VENUE_LONG']])
 
-    # Calculate the average distance of users from each venue
-    venue_data['avg_user_distance'] = data.groupby(['VENUE_LAT_ROUNDED', 'VENUE_LONG_ROUNDED']).apply(calculate_average_distance).reset_index(level=[0,1], drop=True)
+    # calculate average distance of users from each venue
+    if args.user_loc:
+        avg_distances = data.groupby(['VENUE_LAT', 'VENUE_LONG']).apply(calculate_average_distance)
+        venue_data = venue_data.merge(avg_distances.rename('avg_user_distance'), on=['VENUE_LAT', 'VENUE_LONG'])
 
     #  class popularity tiers
     venue_data['popularity_tier'] = pd.qcut(venue_data['total_orders'], 3, labels=['Low', 'Medium', 'High'])
+
+    # selecting features
+    features = ['VENUE_LAT', 'VENUE_LONG']
     if args.user_loc:
-        features = ['VENUE_LAT_ROUNDED', 'VENUE_LONG_ROUNDED', 'avg_user_distance'] # feature selection
-    else:
-        features = ['VENUE_LAT_ROUNDED', 'VENUE_LONG_ROUNDED'] 
-    return venue_data, features
+        features.append('avg_user_distance')
+    if args.cluster_venues:
+        features.append('cluster_label')
+    return venue_data, features, kmeans
 
 # Train models
 def train_models(venue_data, features):
@@ -144,21 +159,25 @@ def eval_model(models, X_test_venue, y_test_venue):
 
 
 # data augmentation and prediction
-def create_synthetic_venues(models, scaler, venue_data, model_type):
+def create_synthetic_venues(models, scaler, venue_data, model_type, kmeans_model):
     # Helsinki city center coordinates --> (60.17, 24.94)
     lat_range = (60.155, 60.195)  # try to find best values for broad synthetic data 
     long_range = (24.925, 24.955)   
     new_venue_data = {     # generating 10 random new venue coordinates within Helsinki area
-        'VENUE_LAT_ROUNDED': [random.uniform(*lat_range) for _ in range(10)],
-        'VENUE_LONG_ROUNDED': [random.uniform(*long_range) for _ in range(10)]
+        'VENUE_LAT': [random.uniform(*lat_range) for _ in range(10)],
+        'VENUE_LONG': [random.uniform(*long_range) for _ in range(10)]
     }
     if args.user_loc:
-        # using mean userdistance from the training data
+        # using mean user distance from the training data
         avg_user_distance = venue_data['avg_user_distance'].mean() 
-
         new_venue_data['avg_user_distance'] = [avg_user_distance] * 10  # repeat for all new venues
 
     new_venues_df = pd.DataFrame(new_venue_data)
+
+    # assign cluster labels to synthetic venues
+    if args.cluster_venues:
+        new_venues_df['cluster_label'] = kmeans_model.predict(new_venues_df[['VENUE_LAT', 'VENUE_LONG']])
+    
     new_venues_df_scaled = scaler.transform(new_venues_df)
 
     selected_model = models.get(model_type, None)
@@ -172,7 +191,7 @@ def create_synthetic_venues(models, scaler, venue_data, model_type):
 
 
 # Plotting
-def plot_map(venue_data, train_indices, test_indices, predictions, new_venues_df, model_name):
+def plot_map(venue_data, train_indices, test_indices, predictions, new_venues_df, model_name, kmeans_model):
     # combine train and test sets for the actual popularity heatmap
     combined_set_df = pd.concat([venue_data.iloc[train_indices], venue_data.iloc[test_indices]])
 
@@ -181,16 +200,18 @@ def plot_map(venue_data, train_indices, test_indices, predictions, new_venues_df
 
     # add markers
     actual_heatmap_data = [
-        (row['VENUE_LAT_ROUNDED'], row['VENUE_LONG_ROUNDED'], intensity_mapping[row['popularity_tier']])
+        (row['VENUE_LAT'], row['VENUE_LONG'], intensity_mapping[row['popularity_tier']])
         for idx, row in combined_set_df.iterrows()
     ]
     actual_map = folium.Map(location=[60.17, 24.94], zoom_start=12)
+    predicted_map = folium.Map(location=[60.17, 24.94], zoom_start=12)
+
     HeatMap(actual_heatmap_data, radius=25).add_to(actual_map)
 
     # blue markers for actual popularity tiers in test set
     for idx, row in venue_data.iloc[test_indices].iterrows():
         folium.CircleMarker(
-            location=[row['VENUE_LAT_ROUNDED'], row['VENUE_LONG_ROUNDED']],
+            location=[row['VENUE_LAT'], row['VENUE_LONG']],
             radius=5,
             color='blue',
             fill=True,
@@ -199,23 +220,44 @@ def plot_map(venue_data, train_indices, test_indices, predictions, new_venues_df
             popup=f'Actual Popularity: {row["popularity_tier"]}'
         ).add_to(actual_map)
 
+    # visualize kmeans cluster centers
+    if args.cluster_venues:
+        cluster_centers = kmeans_model.cluster_centers_
+        for center in cluster_centers:
+            folium.Circle(
+                location=center,  # cluster center location (lat, long)
+                radius=500,  # 
+                color='#1f77b4',
+                fill=True,
+                fill_color='#1f77b4',
+                fill_opacity=0.2  # opacity low
+            ).add_to(actual_map)
+            folium.Circle(
+                location=center,  
+                radius=500,  
+                color='#1f77b4',  # Circle color
+                fill=True,
+                fill_color='#1f77b4',
+                fill_opacity=0.2 
+            ).add_to(predicted_map)
+
     actual_map.save('actual_popularity.html')
 
     # predicted popularity heatmap with markers for correct and incorrect predictions
     test_set_df = venue_data.iloc[test_indices].copy()
     test_set_df['predicted_popularity_tier'] = predictions[model_name]
     predicted_heatmap_data = [
-        (row['VENUE_LAT_ROUNDED'], row['VENUE_LONG_ROUNDED'], intensity_mapping[row['predicted_popularity_tier']])
+        (row['VENUE_LAT'], row['VENUE_LONG'], intensity_mapping[row['predicted_popularity_tier']])
         for idx, row in test_set_df.iterrows()
     ]
-    predicted_map = folium.Map(location=[60.17, 24.94], zoom_start=12)
+
     HeatMap(predicted_heatmap_data, radius=25).add_to(predicted_map)
 
     # adding markers
     for idx, row in test_set_df.iterrows():
         marker_color = 'green' if row['popularity_tier'] == row['predicted_popularity_tier'] else 'red'
         folium.CircleMarker(
-            location=[row['VENUE_LAT_ROUNDED'], row['VENUE_LONG_ROUNDED']],
+            location=[row['VENUE_LAT'], row['VENUE_LONG']],
             radius=5,
             color=marker_color,
             fill=True,
@@ -227,7 +269,7 @@ def plot_map(venue_data, train_indices, test_indices, predictions, new_venues_df
     # adding blue markers for new synthetic venue predictions
     for idx, row in new_venues_df.iterrows():
         folium.CircleMarker(
-            location=[row['VENUE_LAT_ROUNDED'], row['VENUE_LONG_ROUNDED']],
+            location=[row['VENUE_LAT'], row['VENUE_LONG']],
             radius=5,
             color='blue',
             fill=True,
@@ -235,22 +277,22 @@ def plot_map(venue_data, train_indices, test_indices, predictions, new_venues_df
             fill_opacity=0.7,
             popup=f'Predicted Popularity (New Venue): {row["predicted_popularity_tier"]}'
         ).add_to(predicted_map)
-
+    
     predicted_map.save('predicted_popularity.html')
 
 if __name__ == '__main__':
     
     data = load_data(args.data_path)
     
-    venue_data, features = feature_engineering(data)
+    venue_data, features, kmeans_model = feature_engineering(data)
     
     models, X_test_venue, y_test_venue, scaler, train_indices, test_indices = train_models(venue_data, features)
 
     predictions = eval_model(models, X_test_venue, y_test_venue)
 
     chosen_model_type = args.model_type if args.model_type != 'all' else 'mlp'  # default to mlp
-    new_venues_df = create_synthetic_venues(models, scaler, venue_data, chosen_model_type)
+    new_venues_df = create_synthetic_venues(models, scaler, venue_data, chosen_model_type, kmeans_model)
     
-    plot_map(venue_data, train_indices, test_indices, predictions, new_venues_df, chosen_model_type)
+    plot_map(venue_data, train_indices, test_indices, predictions, new_venues_df, chosen_model_type, kmeans_model)
 
     test_results = significance_test(models, X_test_venue, y_test_venue) if args.model_type == 'all' else None
