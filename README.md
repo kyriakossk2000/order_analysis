@@ -11,9 +11,15 @@ Predicting-Venue-Popularity/
 │ ├── data_analysis.ipynb
 │ ├── orders_autumn_2020.csv
 │ ├── user_heatmap.html
-│ └── user_heatmap.png
+│ ├── user_heatmap.png
+│ ├── venue_heatmap.html
+│ ├── venue_heatmap.png
+│ └── venue_orders_heatmap.png
 │
 ├── modeling.py
+├── Wolt Presentation.pptx
+├── actual_popularity.html
+├── predicted_popularity.html
 └── requirements.txt
 ```
 ### Prerequisites
