@@ -208,18 +208,6 @@ def plot_map(venue_data, train_indices, test_indices, predictions, new_venues_df
 
     HeatMap(actual_heatmap_data, radius=25).add_to(actual_map)
 
-    # blue markers for actual popularity tiers in test set
-    for idx, row in venue_data.iloc[test_indices].iterrows():
-        folium.CircleMarker(
-            location=[row['VENUE_LAT'], row['VENUE_LONG']],
-            radius=5,
-            color='blue',
-            fill=True,
-            fill_color='blue',
-            fill_opacity=0.7,
-            popup=f'Actual Popularity: {row["popularity_tier"]}'
-        ).add_to(actual_map)
-
     # visualize kmeans cluster centers
     if args.cluster_venues:
         cluster_centers = kmeans_model.cluster_centers_
@@ -240,6 +228,18 @@ def plot_map(venue_data, train_indices, test_indices, predictions, new_venues_df
                 fill_color='#1f77b4',
                 fill_opacity=0.2 
             ).add_to(predicted_map)
+
+    # blue markers for actual popularity tiers in test set
+    for idx, row in venue_data.iloc[test_indices].iterrows():
+        folium.CircleMarker(
+            location=[row['VENUE_LAT'], row['VENUE_LONG']],
+            radius=5,
+            color='blue',
+            fill=True,
+            fill_color='blue',
+            fill_opacity=0.7,
+            popup=f'Actual Popularity: {row["popularity_tier"]}'
+        ).add_to(actual_map)
 
     actual_map.save('actual_popularity.html')
 
