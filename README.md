@@ -33,7 +33,7 @@ The `modeling.py` script is the main file that performs the modelling, training,
 #### Example Commands
 Run the following command in the command line to execute the modelling script with all models:
 ```bash
-python modeling.py --data_path Data\orders_autumn_2020.csv --model_type all --user_loc True --cluster_venues True --n_clusters 10
+python modeling.py --data_path Data/orders_autumn_2020.csv --model_type all --user_loc True --cluster_venues True --n_clusters 10
 ```
 To specify a model type and configure other parameters:
 ```bash
