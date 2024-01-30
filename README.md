@@ -5,7 +5,7 @@ This project focuses on predicting venue popularity. It aims to utilize geospati
 
 ## Folder Structure
 ```bash
-Predicting-Venue-Popularity/
+Predicting_Venue_Popularity/
 │
 ├── Data/
 │ ├── data_analysis.ipynb
