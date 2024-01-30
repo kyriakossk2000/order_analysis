@@ -17,7 +17,7 @@ Predicting-Venue-Popularity/
 │ └── venue_orders_heatmap.png
 │
 ├── modeling.py
-├── Wolt Presentation.pptx
+├── Presentation.pdf
 ├── actual_popularity.html
 ├── predicted_popularity.html
 └── requirements.txt
