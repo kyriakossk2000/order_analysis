@@ -16,7 +16,7 @@ Order_Analysis/
 │ ├── venue_heatmap.png
 │ └── venue_orders_heatmap.png
 │
-├── order_timeseries.py
+├── order_forecasting_timeseries.py
 ├── order_forecasting.py
 ├── popularity.py
 ├── Presentation.pdf
@@ -29,8 +29,8 @@ Install the required packages using the following command:
 ```bash
 pip install -r requirements.txt
 ```
-### Running the Model
-The `popularity.py`, `order_timeseries.py`, `order_forecasting.py` scripts are the main files that performs the modelling, training, and evaluation. They accepts several arguments to customize the training process.
+### Running the Models
+The `popularity.py`, `order_forecasting_timeseries.py`, `order_forecasting.py` scripts are the main files that performs the modelling, training, and evaluation. They accepts several arguments to customize the training process.
 
 #### Example Commands for Venue popularity prediction
 Run the following command in the command line to execute venue popularity modelling script with all models:
@@ -50,6 +50,17 @@ python popularity.py --data_path Data/orders_autumn_2020.csv --model_type ensemb
 ```
 Models available (`model_type` command): Multilayer Perceptron (`mlp`), Gradient Boosting Classifier (`gb`), Random Forest Classifier (`forest`), Naive Bayes (`naive`), Support Vector Classifier (`svm`), Ensemble model based on all (`ensemble`), All models run (`all`). When running `all`, a significance test will be executed to compare the models and check if there is a statistically significant difference.
 
+#### Example Commands for Order forecasting with Time series
+Run the following command in the command line to execute order forecaasting with all models:
+```bash
+python order_forecasting_timeseries.py --data_path Data/orders_autumn_2020.csv --model_type all
+```
+#### Example Commands for Order forecasting with traditional regression models
+Run the following command in the command line to execute order forecaasting with all models:
+```bash
+python order_forecasting.py --data_path Data/orders_autumn_2020.csv --model_type all
+```
+
 ## Data Analysis
 The `data_analysis.ipynb` notebook within the `Data` folder includes a comprehensive exploratory data analysis (EDA) of the dataset. Key insights are drawn through various visualizations.
 
@@ -62,4 +73,9 @@ The task is to predict venue popularity based on geographic coordinates. The mod
 - Two `HTML` files are created that demonstrate the actual and predicted popularity of the venues. The `actual_popularity` shows all the venues in the dataset. The venues that belong to the test set are also displayed with blue markes. The `predicted_popularity`, presents only the venues from the test set. Red markers indicate misclassification, green ones present the correct classifications. Blue markers present the synthetic venues. Finally, if `cluster_venues` argument is set to True, the created clusters will be visualized in both maps.
 
 ## Task Description for Order Time series analysis
-The task is to analyze order trends and predict into the future.
+The task is to analyze order trends and predict into the future. It uses SARIMA and ARIMA AR models. Many parameters available to choose from, including window sizes (how long into the future to predict), model type, etc.
+
+## Task Description for Order forecasting
+The task is to forecast future order volumes. It uses traditional regression models. Many parameters available to choose from, including window sizes, model type, etc.
+
+
