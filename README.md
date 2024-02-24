@@ -1,11 +1,11 @@
 # Predicting tasks
 
 ## Project Overview
-This project focuses on predicting venue popularity, order forecasting, and doing a time series order analysis. For predicting venue popularity, we utilize geospatial venue data points (longitude and latitude) and predict if a venue with that coordinates, will be Highly popular, Medium popular, or Low popular. This will help in resource allocation and planning.
+This project focuses on predicting venue popularity, order forecasting, and doing a time series order analysis. For predicting venue popularity, we utilize geospatial venue data points (longitude and latitude) and predict if a venue with that coordinates, will be Highly popular, Medium popular, or Low popular. This will help in resource allocation and planning. Dataset from Wolt.
 
 ## Folder Structure
 ```bash
-Predicting_Venue_Popularity/
+Order_Analysis/
 │
 ├── Data/
 │ ├── data_analysis.ipynb
@@ -60,3 +60,6 @@ The task is to predict venue popularity based on geographic coordinates. The mod
 - Adjust the `cluster_venues` and `n_clusters` arguments to create and include geographic clustering as a feature. Note: EDA shows that there is almost zero benefit from this (sometimes might be misleading).
 - Synthetic venue coordinates have been created to demonstrate model's generalization. It is expected that when these augmented points fall into 'popular' areas, will be classified into High popular category.  
 - Two `HTML` files are created that demonstrate the actual and predicted popularity of the venues. The `actual_popularity` shows all the venues in the dataset. The venues that belong to the test set are also displayed with blue markes. The `predicted_popularity`, presents only the venues from the test set. Red markers indicate misclassification, green ones present the correct classifications. Blue markers present the synthetic venues. Finally, if `cluster_venues` argument is set to True, the created clusters will be visualized in both maps.
+
+## Task Description for Order Time series analysis
+The task is to analyze order trends and predict into the future.
