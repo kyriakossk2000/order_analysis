@@ -19,7 +19,6 @@ Order_Analysis/
 ├── order_forecasting_timeseries.py
 ├── order_forecasting.py
 ├── popularity.py
-├── Presentation.pdf
 ├── actual_popularity.html
 ├── predicted_popularity.html
 └── requirements.txt
